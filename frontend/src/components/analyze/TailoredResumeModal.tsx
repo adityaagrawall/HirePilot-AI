@@ -19,7 +19,7 @@ export default function TailoredResumeModal({
   const resumeRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
-    content: () => resumeRef.current,
+    contentRef: resumeRef,
     documentTitle: `${resumeData?.personalInfo?.fullName?.replace(/\s+/g, '_') || 'Tailored'}_Resume`,
   });
 
