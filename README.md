@@ -22,7 +22,7 @@
 
 ---
 
-## 💡 What is HirePilot AI?
+## 💡 What is HirePilot AI?!
 
 **HirePilot AI** is an intelligent, full-stack resume optimization platform designed to bridge the gap between job seekers and Applicant Tracking Systems (ATS). 
 
