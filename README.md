@@ -13,6 +13,7 @@
     <img src="https://img.shields.io/badge/Prisma-39827B?style=for-the-badge&logo=prisma&logoColor=white" alt="Prisma" />
     <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
     <img src="https://img.shields.io/badge/Google%20Gemini-8E75C2?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini" />
+    <img src="https://img.shields.io/badge/Security-Production--Grade-green?style=for-the-badge&logo=shield" alt="Security" />
   </p>
 
   <h4>
@@ -51,6 +52,19 @@ In today's job market, over 75% of resumes are filtered out by automated screene
 
 ### ✉️ 5. AI Cover Letter Generator
 * Get a tailored, persuasive cover letter matching the tone of the job posting and highlighting your most relevant qualifications.
+
+---
+
+## 🛡️ Production-Grade Security & Hardening
+
+HirePilot AI is engineered with enterprise security best practices to protect user data and defend against modern web & AI attack vectors:
+
+- **Client-Side Zero-Trust PDF Processing:** PDF text parsing is performed entirely inside the user's browser using `pdfjs-dist`. Binary `.pdf` files are never uploaded or stored on the backend, completely eliminating Server-Side Request Forgery (SSRF), malware execution, and RCE vulnerabilities.
+- **AI Prompt Injection Defense:** User input is isolated inside strict XML delimiters (`<resume_content>`) paired with hardened LLM system prompts to prevent jailbreak and prompt hijacking attacks.
+- **Rate Limiting & DoW Protection:** Endpoint-level protection powered by `express-rate-limit` prevents Denial of Wallet (DoW) attacks and API quota exhaustion (10 requests/hour limit for AI generation, 100 requests/15 minutes global limit).
+- **Cryptographic Payload Validation:** Powered by **Zod** schema enforcement, ensuring all API parameters fit strict bounds before execution.
+- **Hardened HTTP Headers:** Protected against Clickjacking, MIME-sniffing, and XSS attacks via custom Vercel headers (`X-Frame-Options: DENY`, `HSTS`, `X-Content-Type-Options: nosniff`, `CSP`).
+- **Production Error Masking:** Stack traces and internal database schemas are strictly scrubbed in production environments to prevent information disclosure.
 
 ---
 
