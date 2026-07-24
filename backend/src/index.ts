@@ -3,7 +3,9 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import { clerkMiddleware, requireAuth } from "@clerk/express";
+import { clerkMiddleware, requireAuth, getAuth } from "@clerk/express";
+import rateLimit from "express-rate-limit";
+import { z } from "zod";
 
 import analyzeRouter from "./routes/analyze";
 import historyRouter from "./routes/history";
@@ -42,23 +44,71 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Global Rate Limiter
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: "Too Many Requests", message: "Global rate limit exceeded." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    try {
+      const { userId } = getAuth(req);
+      return userId || req.ip || "anonymous";
+    } catch {
+      return req.ip || "anonymous";
+    }
+  },
+});
+
+app.use("/api", globalLimiter);
+
 // Routes
 app.use("/api/analyze", analyzeRouter);
 app.use("/api", historyRouter);
 app.use("/api/profile", profileRouter);
 
+// Build Tailored Resume Rate Limiter
+const buildResumeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: "Too Many Requests", message: "Resume build limit reached (10 per hour)." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    try {
+      const { userId } = getAuth(req);
+      return userId || req.ip || "anonymous";
+    } catch {
+      return req.ip || "anonymous";
+    }
+  },
+});
+
+const buildResumeSchema = z.object({
+  resumeText: z.string().min(100, "Resume is too short").max(50000, "Resume is too long"),
+  jobDescription: z.string().min(50, "JD is too short").max(20000, "JD is too long"),
+  analysisData: z.record(z.any(), { message: "Invalid analysis data" }),
+});
+
 // Build Tailored Resume Endpoint
 app.post(
   "/api/analyze/build-resume",
   requireAuth(),
-  async (req, res) => {
+  buildResumeLimiter,
+  async (req, res, next) => {
     try {
-      const { resumeText, jobDescription, analysisData } = req.body;
+      const validation = buildResumeSchema.safeParse(req.body);
 
-      if (!resumeText || !jobDescription || !analysisData) {
-        res.status(400).json({ error: "resumeText, jobDescription, and analysisData are required" });
+      if (!validation.success) {
+        res.status(400).json({ 
+          error: "Validation Error", 
+          message: validation.error.errors[0]?.message || "Invalid input"
+        });
         return;
       }
+
+      const { resumeText, jobDescription, analysisData } = validation.data;
 
       const structuredResume = await buildTailoredResume(
         resumeText,
@@ -68,14 +118,21 @@ app.post(
 
       res.json(structuredResume);
     } catch (error) {
-      console.error("Resume Build Error:", error);
-      res.status(500).json({ error: "Failed to build tailored resume" });
+      next(error);
     }
   }
 );
 
 // Global error handler
 app.use(errorHandler);
+
+// Crash safety
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 HirePilot API running on http://localhost:${PORT}`);
